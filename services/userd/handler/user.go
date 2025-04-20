@@ -138,10 +138,38 @@ func getUserByEmail(service user.Usecase) http.HandlerFunc {
 	}
 }
 
+func login(service user.Usecase) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var req presenter.LoginRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, fmt.Sprintf("unable to decode request body, err=%v", err), http.StatusBadRequest)
+			return
+		}
+
+		user, err := service.Login(req.Email, req.Pass)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("unable to login user, err=%v", err), http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		if err := json.NewEncoder(w).Encode(presenter.LoginResponse{JWTToken: user}); err != nil {
+			http.Error(w, fmt.Sprintf("unable to encode to JSON, err=%v", err), http.StatusInternalServerError)
+			return
+		}
+	}
+}
+
 // Register User Routes
 func RegisterUserHandlers(service user.Usecase) {
 	http.HandleFunc("/v1/user/health", getUserHealth)           // GET
 	http.HandleFunc("/v1/user", createUser(service))            // POST
 	http.HandleFunc("/v1/user/id/", getUserByID(service))       //v1/user/id/{id} // GET
 	http.HandleFunc("/v1/user/email/", getUserByEmail(service)) ////v1/user/id/{email} // GET
+	http.HandleFunc("/v1/login", login(service))
 }

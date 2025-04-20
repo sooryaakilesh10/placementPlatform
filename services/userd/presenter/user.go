@@ -14,3 +14,13 @@ type UserResponse struct {
 	Email    string `json:"email"`
 	Role     string `json:"role"`
 }
+
+type LoginRequest struct {
+	UserName string `json:"user_name"`
+	Email    string `json:"email"`
+	Pass     string `json:"pass"`
+}
+
+type LoginResponse struct {
+	JWTToken string `json:"jwt_token"`
+}

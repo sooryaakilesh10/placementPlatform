@@ -20,4 +20,5 @@ type Usecase interface {
 	CreateUser(userName, email, pass, role string) (*entity.User, error)
 	GetUserByID(id string) (*entity.User, error)
 	GetUserByEmail(email string) (*entity.User, error)
+	Login(email, pass string) (string, error)
 }

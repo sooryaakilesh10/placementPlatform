@@ -1,7 +1,9 @@
 package main
 
 import (
+	"crypto/rand"
 	"database/sql"
+	"encoding/base64"
 	"fmt"
 	"log"
 	"net/http"
@@ -17,6 +19,15 @@ import (
 )
 
 const PORT = "8080"
+
+func generateSecret(length int) (string, error) {
+	bytes := make([]byte, length)
+	_, err := rand.Read(bytes)
+	if err != nil {
+		return "", err
+	}
+	return base64.URLEncoding.EncodeToString(bytes), nil
+}
 
 func main() {
 	connStr := fmt.Sprintf("%s:%s@tcp(%s)/%s?parseTime=true",
@@ -40,7 +51,11 @@ func main() {
 	}
 	log.Println("Database connection successful")
 
-	userHandler.RegisterUserHandlers(user.NewService(repository.NewRepository(db)))
+	jwtSecret, err := generateSecret(32)
+	if err != nil {
+		log.Fatalf("Error generating JWT secret: %v", err)
+	}
+	userHandler.RegisterUserHandlers(user.NewService(repository.NewRepository(db), jwtSecret))
 
 	port := getEnv("PORT", PORT)
 	log.Printf("Server starting on port %s...", port)

@@ -54,3 +54,17 @@ HTTP 200
 jsonpath "$.user_name" exists
 jsonpath "$.email" exists
 jsonpath "$.role" exists
+
+# Test login endpoint
+POST http://localhost:8080/v1/login
+Content-Type: application/json
+
+{
+  "user_name": "admin",
+  "email": "admin@gmail.com",
+  "pass": "test1@123"
+}
+
+HTTP 200
+[Asserts]
+jsonpath "$.jwt_token" exists
