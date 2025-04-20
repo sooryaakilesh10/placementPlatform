@@ -9,3 +9,8 @@ CREATE TABLE users (
     role TEXT NOT NULL CHECK (role IN ('admin', 'manager', 'user')),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
+
+CREATE TABLE data (
+    data_id VARCHAR(36) PRIMARY KEY,
+    company_data JSON NOT NULL
+);

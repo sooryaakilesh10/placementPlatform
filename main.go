@@ -13,6 +13,9 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	// _ "github.com/lib/pq"
 
+	dataHandler "backend/services/datad/handler"
+	dataRepository "backend/services/datad/repository"
+	"backend/services/datad/usecase/data"
 	userHandler "backend/services/userd/handler"
 	"backend/services/userd/repository"
 	"backend/services/userd/usecase/user"
@@ -55,7 +58,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error generating JWT secret: %v", err)
 	}
-	userHandler.RegisterUserHandlers(user.NewService(repository.NewRepository(db), jwtSecret))
+	userHandler.RegisterUserHandlers(user.NewService(repository.NewUserRepository(db), jwtSecret))
+	dataHandler.RegisterDataHandlers(data.NewService(dataRepository.NewDataRepository(db), jwtSecret))
 
 	port := getEnv("PORT", PORT)
 	log.Printf("Server starting on port %s...", port)
