@@ -57,3 +57,33 @@ func (r *Repository) GetCompany(id string) (*entity.CompanyData, error) {
 	}
 	return &company, nil
 }
+
+func (r *Repository) GetCompanyByName(name string) (*entity.CompanyData, error) {
+	var company entity.CompanyData
+	query := `
+		SELECT 
+			id, company_name, company_address, drive, type_of_drive, 
+			follow_up, is_contacted, remarks, contact_details, hr_details 
+		FROM company_data 
+		WHERE name = ?
+	`
+	err := r.db.QueryRow(query, name).Scan(
+		&company.CompanyID,
+		&company.CompanyName,
+		&company.CompanyAddress,
+		&company.Drive,
+		&company.TypeOfDrive,
+		&company.FollowUp,
+		&company.IsContacted,
+		&company.Remarks,
+		&company.ContactDetails,
+		&company.HRDetails,
+	)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
+	return &company, nil
+}

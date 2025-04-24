@@ -96,9 +96,9 @@ func (s *Service) CreateCompany(jwtString string,
 	ContactDetails,
 	HRDetails string,
 	IsContacted bool) (string, error) {
-	// if err := s.validateJWTAndRole(jwtString); err != nil {
-	// 	return "", err
-	// }
+	if err := s.validateJWTAndRole(jwtString); err != nil {
+		return "", err
+	}
 
 	companyData, err := entity.NewCompany(CompanyName,
 		CompanyAddress,
@@ -124,11 +124,25 @@ func (s *Service) CreateCompany(jwtString string,
 }
 
 func (s *Service) GetCompany(jwtString string, id string) (*entity.CompanyData, error) {
-	// if err := s.validateJWTAndRole(jwtString); err != nil {
-	// 	return nil, err
-	// }
+	if err := s.validateJWTAndRole(jwtString); err != nil {
+		return nil, err
+	}
 
 	companyData, err := s.repo.GetCompany(id)
+	if err != nil {
+		log.Printf("unable to get company, err=%v", err)
+		return nil, err
+	}
+
+	return companyData, nil
+}
+
+func (s *Service) GetCompanyByName(jwtString string, name string) (*entity.CompanyData, error) {
+	if err := s.validateJWTAndRole(jwtString); err != nil {
+		return nil, err
+	}
+
+	companyData, err := s.repo.GetCompany(name)
 	if err != nil {
 		log.Printf("unable to get company, err=%v", err)
 		return nil, err

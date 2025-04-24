@@ -27,4 +27,5 @@ type Usecase interface {
 		HRDetails string,
 		isContacted bool) (string, error)
 	GetCompany(jwtString, id string) (*entity.CompanyData, error)
+	GetCompanyByName(jwtString, name string) (*entity.CompanyData, error)
 }

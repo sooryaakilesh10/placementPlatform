@@ -33,3 +33,17 @@ CREATE TABLE company_data (
     hr_details TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE company_data_approval (
+    id VARCHAR(255) PRIMARY KEY,
+    company_name VARCHAR(255) NOT NULL,
+    company_address TEXT,
+    drive VARCHAR(255),
+    type_of_drive VARCHAR(100),
+    follow_up TEXT,
+    is_contacted BOOLEAN DEFAULT FALSE,
+    remarks TEXT,
+    contact_details TEXT,
+    hr_details TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
