@@ -14,3 +14,22 @@ CREATE TABLE data (
     data_id VARCHAR(36) PRIMARY KEY,
     company_data JSON NOT NULL
 );
+
+CREATE TABLE account_data_map (
+    account_id VARCHAR(36) NOT NULL,
+    data_id VARCHAR(36) NOT NULL
+);
+
+CREATE TABLE company_data (
+    id VARCHAR(255) PRIMARY KEY,
+    company_name VARCHAR(255) NOT NULL,
+    company_address TEXT,
+    drive VARCHAR(255),
+    type_of_drive VARCHAR(100),
+    follow_up TEXT,
+    is_contacted BOOLEAN DEFAULT FALSE,
+    remarks TEXT,
+    contact_details TEXT,
+    hr_details TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

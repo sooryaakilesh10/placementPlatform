@@ -3,8 +3,11 @@ package data
 import (
 	"backend/services/datad/entity"
 	"database/sql"
-	"encoding/json"
+	"errors"
 )
+
+// ErrNotFound is returned when a requested entity is not found.
+var ErrNotFound = errors.New("entity not found")
 
 type Repository struct {
 	db *sql.DB
@@ -16,37 +19,41 @@ func NewDataRepository(db *sql.DB) *Repository {
 	}
 }
 
-func (r *Repository) CreateData(data *entity.Data) (string, error) {
-	jsonData, err := json.Marshal(data.CompanyData)
+func (r *Repository) CreateCompany(company *entity.CompanyData) error {
+	query := `INSERT INTO company_data (id, company_name, company_address, drive, type_of_drive, follow_up, is_contacted, remarks, contact_details, hr_details) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+	_, err := r.db.Exec(query, company.CompanyID, company.CompanyName, company.CompanyAddress, company.Drive, company.TypeOfDrive, company.FollowUp, company.IsContacted, company.Remarks, company.ContactDetails, company.HRDetails)
 	if err != nil {
-		return "", err
+		return err
 	}
-
-	query := `INSERT INTO data (data_id, company_data) VALUES (?, ?)`
-	_, err = r.db.Exec(query, data.DataID, string(jsonData))
-	if err != nil {
-		return "", err
-	}
-	return data.DataID, nil
+	return nil
 }
 
-func (r *Repository) GetDataByID(id string) (*entity.Data, error) {
-	query := `SELECT data_id, company_data FROM data WHERE data_id = ?`
-	row := r.db.QueryRow(query, id)
-
-	var dataID string
-	var companyData string
-	err := row.Scan(&dataID, &companyData)
+func (r *Repository) GetCompany(id string) (*entity.CompanyData, error) {
+	var company entity.CompanyData
+	query := `
+		SELECT 
+			id, company_name, company_address, drive, type_of_drive, 
+			follow_up, is_contacted, remarks, contact_details, hr_details 
+		FROM company_data 
+		WHERE id = ?
+	`
+	err := r.db.QueryRow(query, id).Scan(
+		&company.CompanyID,
+		&company.CompanyName,
+		&company.CompanyAddress,
+		&company.Drive,
+		&company.TypeOfDrive,
+		&company.FollowUp,
+		&company.IsContacted,
+		&company.Remarks,
+		&company.ContactDetails,
+		&company.HRDetails,
+	)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrNotFound
+		}
 		return nil, err
 	}
-
-	var data entity.Data
-	err = json.Unmarshal([]byte(companyData), &data.CompanyData)
-	if err != nil {
-		return nil, err
-	}
-	data.DataID = dataID
-
-	return &data, nil
+	return &company, nil
 }

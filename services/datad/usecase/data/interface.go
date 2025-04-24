@@ -8,14 +8,23 @@ type Repository interface {
 }
 
 type Writer interface {
-	CreateData(data *entity.Data) (string, error)
+	CreateCompany(companyData *entity.CompanyData) error
 }
 
 type Reader interface {
-	GetDataByID(id string) (*entity.Data, error)
+	GetCompany(id string) (*entity.CompanyData, error)
 }
 
 type Usecase interface {
-	CreateData(jwt string, companyData interface{}) (*entity.Data, error)
-	GetDataByID(id string) (*entity.Data, error)
+	CreateCompany(jwt,
+		companyName,
+		CompanyAddress,
+		Drive,
+		TypeOfDrive,
+		FollowUp,
+		Remarks,
+		ContactDetails,
+		HRDetails string,
+		isContacted bool) (string, error)
+	GetCompany(jwtString, id string) (*entity.CompanyData, error)
 }

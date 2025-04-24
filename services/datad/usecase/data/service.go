@@ -21,14 +21,6 @@ func NewService(repo Repository, jwtSecret string) *Service {
 	}
 }
 
-// NewServiceWithAuth creates a new data service with JWT authentication
-func NewServiceWithAuth(repo Repository, jwtSecret string) *Service {
-	return &Service{
-		repo:      repo,
-		JWTSecret: jwtSecret,
-	}
-}
-
 func (s *Service) validateJWTAndRole(jwtString string) error {
 	// Skip JWT validation if no JWT secret is set or jwt string is empty
 	if s.JWTSecret == "" || jwtString == "" {
@@ -94,33 +86,53 @@ func (s *Service) validateJWTAndRole(jwtString string) error {
 	return nil
 }
 
-func (s *Service) CreateData(jwtString string, companyData interface{}) (*entity.Data, error) {
-	if err := s.validateJWTAndRole(jwtString); err != nil {
-		return nil, err
-	}
+func (s *Service) CreateCompany(jwtString string,
+	CompanyName,
+	CompanyAddress,
+	Drive,
+	TypeOfDrive,
+	FollowUp,
+	Remarks,
+	ContactDetails,
+	HRDetails string,
+	IsContacted bool) (string, error) {
+	// if err := s.validateJWTAndRole(jwtString); err != nil {
+	// 	return "", err
+	// }
 
-	// Check if companyData is nil
-	if companyData == nil {
-		return nil, fmt.Errorf("company data cannot be nil")
-	}
-
-	// Create entity and save to repository
-	dataEn := entity.NewData(companyData)
-	dataID, err := s.repo.CreateData(dataEn)
+	companyData, err := entity.NewCompany(CompanyName,
+		CompanyAddress,
+		Drive,
+		TypeOfDrive,
+		FollowUp,
+		Remarks,
+		ContactDetails,
+		HRDetails,
+		IsContacted)
 	if err != nil {
-		log.Printf("unable to create data in repository, err=%v", err)
-		return nil, err
+		log.Printf("unable to create company, err=%v", err)
+		return "", err
 	}
 
-	dataEn.DataID = dataID
-	return dataEn, nil
+	err = s.repo.CreateCompany(companyData)
+	if err != nil {
+		log.Printf("unable to create company in repo, err=%v", err)
+		return "", err
+	}
+
+	return companyData.CompanyID, nil
 }
 
-func (s *Service) GetDataByID(id string) (*entity.Data, error) {
-	data, err := s.repo.GetDataByID(id)
+func (s *Service) GetCompany(jwtString string, id string) (*entity.CompanyData, error) {
+	// if err := s.validateJWTAndRole(jwtString); err != nil {
+	// 	return nil, err
+	// }
+
+	companyData, err := s.repo.GetCompany(id)
 	if err != nil {
-		log.Printf("unable to get data by ID, err=%v", err)
+		log.Printf("unable to get company, err=%v", err)
 		return nil, err
 	}
-	return data, nil
+
+	return companyData, nil
 }

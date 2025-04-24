@@ -2,9 +2,12 @@ package handler
 
 import (
 	"backend/services/datad/presenter"
+	dataRepository "backend/services/datad/repository"
 	"backend/services/datad/usecase/data"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 
@@ -15,66 +18,42 @@ func getDataHealth(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func createData(service data.Usecase) http.HandlerFunc {
+func createCompany(service data.Usecase) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-
-		var req presenter.DataRequest
+		var req presenter.CreateCompanyRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "unable to decode request body", http.StatusBadRequest)
+			log.Printf("Unable to decode request body, err=%v", err)
+			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
-		// If JWT is not in request body, try to get it from Authorization header
-		if req.JWT == "" {
-			authHeader := r.Header.Get("Authorization")
-			if len(authHeader) > 7 && authHeader[:7] == "Bearer " {
-				req.JWT = authHeader[7:]
-			}
-		}
-
-		// Validate company_data is not nil
-		if req.CompanyData == nil {
-			http.Error(w, "company_data cannot be empty", http.StatusBadRequest)
-			return
-		}
-
-		newData, err := service.CreateData(req.JWT, req.CompanyData)
+		compnayID, err := service.CreateCompany(
+			req.JWT,
+			req.CompanyName,
+			req.CompanyAddress,
+			req.Drive,
+			req.TypeOfDrive,
+			req.FollowUp,
+			req.Remarks,
+			req.ContactDetails,
+			req.HRDetails,
+			req.IsContacted)
 		if err != nil {
-			statusCode := http.StatusInternalServerError
-
-			// Determine appropriate status code based on error message
-			errMsg := err.Error()
-			if errMsg == "permission denied: insufficient role" {
-				statusCode = http.StatusForbidden
-			} else if errMsg == "invalid token" || (len(errMsg) > 13 && errMsg[:13] == "invalid token:") {
-				statusCode = http.StatusBadRequest
-			}
-
-			http.Error(w, fmt.Sprintf("unable to create data entity: %v", err), statusCode)
+			log.Printf("Unable to create company, err=%v", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		if newData == nil {
-			http.Error(w, "unexpected server error", http.StatusInternalServerError)
-			return
-		}
-
-		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		if err := json.NewEncoder(w).Encode(struct {
-			ID string `json:"data_id"`
-		}{ID: newData.DataID}); err != nil {
-			http.Error(w, "unable to encode to JSON", http.StatusInternalServerError)
+		if err := json.NewEncoder(w).Encode(presenter.CreateCompanyResponse{CompanyID: compnayID}); err != nil {
+			log.Printf("Unable to encode response, err=%v", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 	}
 }
 
-func getDataByID(service data.Usecase) http.HandlerFunc {
+func getCompany(service data.Usecase) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -84,7 +63,7 @@ func getDataByID(service data.Usecase) http.HandlerFunc {
 		// Extract ID from path /v1/data/id/{id}
 		path := strings.TrimPrefix(r.URL.Path, "/v1/data/id/")
 		if path == "" {
-			http.Error(w, "id is required", http.StatusBadRequest)
+			http.Error(w, "company ID is required in the path", http.StatusBadRequest)
 			return
 		}
 
@@ -98,82 +77,47 @@ func getDataByID(service data.Usecase) http.HandlerFunc {
 		// Validate if the ID is a valid UUID
 		_, err := uuid.Parse(id)
 		if err != nil {
-			http.Error(w, fmt.Sprintf("invalid data ID format: %v", err), http.StatusBadRequest)
+			http.Error(w, fmt.Sprintf("invalid company ID format: %v", err), http.StatusBadRequest)
 			return
 		}
 
-		// Get data by ID
-		data, err := service.GetDataByID(id)
+		// TODO: Implement proper JWT extraction and validation if needed for GET
+		jwtString := "" // Placeholder: Pass empty JWT for now
+
+		company, err := service.GetCompany(jwtString, id) // Use the 'id' variable from the path
 		if err != nil {
-			http.Error(w, "unable to get data by ID", http.StatusInternalServerError)
+			if errors.Is(err, dataRepository.ErrNotFound) {
+				http.Error(w, "Company not found", http.StatusNotFound)
+			} else {
+				log.Printf("Unable to get company, err=%v", err)
+				http.Error(w, "Internal server error", http.StatusInternalServerError)
+			}
 			return
 		}
 
-		if data == nil {
-			http.Error(w, "data not found", http.StatusNotFound)
-			return
-		}
-
-		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		if err := json.NewEncoder(w).Encode(
-			presenter.DataResponse{DataID: data.DataID, CompanyData: data.CompanyData},
-		); err != nil {
-			http.Error(w, "unable to encode to JSON", http.StatusInternalServerError)
+		if err := json.NewEncoder(w).Encode(presenter.GetCompanyResponse{
+			CompanyID:      company.CompanyID,
+			CompanyName:    company.CompanyName,
+			CompanyAddress: company.CompanyAddress,
+			Drive:          company.Drive,
+			TypeOfDrive:    company.TypeOfDrive,
+			FollowUp:       company.FollowUp,
+			IsContacted:    company.IsContacted,
+			Remarks:        company.Remarks,
+			ContactDetails: company.ContactDetails,
+			HRDetails:      company.HRDetails,
+		}); err != nil {
+			log.Printf("Unable to encode response, err=%v", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 	}
 }
 
-// func getDataByName(service data.Usecase) http.HandlerFunc {
-// 	return func(w http.ResponseWriter, r *http.Request) {
-// 		if r.Method != http.MethodGet {
-// 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-// 			return
-// 		}
-
-// 		vars := mux.Vars(r)
-// 		name := vars["name"]
-
-// 		log.Printf("Received data retrieval request for name: %s", name)
-
-// 		// Validate name
-// 		if name == "" {
-// 			http.Error(w, "name is empty", http.StatusBadRequest)
-// 			return
-// 		}
-
-// 		// Get data by name
-// 		data, err := service.GetDataByName(name)
-// 		if err != nil {
-// 			http.Error(w, "unable to get data by name", http.StatusInternalServerError)
-// 			return
-// 		}
-
-// 		if data == nil {
-// 			http.Error(w, "data not found", http.StatusNotFound)
-// 			return
-// 		}
-
-// 		w.Header().Set("Content-Type", "application/json")
-// 		w.WriteHeader(http.StatusOK)
-// 		if err := json.NewEncoder(w).Encode(presenter.DataResponse{DataID: data.DataID}); err != nil {
-// 			http.Error(w, fmt.Sprintf("unable to encode to JSON", err), http.StatusInternalServerError)
-// 			return
-// 		}
-// 	}
-// }
-
-// func listData(service user.Usecase) http.HandlerFunc {
-// }
-
-// func login(service user.Usecase) http.HandlerFunc {
-// }
-
 // Register Data Routes
 func RegisterDataHandlers(service data.Usecase) {
-	http.HandleFunc("/v1/data/health", getDataHealth)     // GET
-	http.HandleFunc("/v1/data", createData(service))      // POST
-	http.HandleFunc("/v1/data/id/", getDataByID(service)) // GET /v1/data/id/{id}
-	// http.HandleFunc("/v1/data/name/", getDataByName(service)) // GET /v1/data/name/{name}
+	http.HandleFunc("/v1/data/health", getDataHealth)    // GET
+	http.HandleFunc("/v1/data", createCompany(service))  // POST
+	http.HandleFunc("/v1/data/id/", getCompany(service)) // POST
 }
