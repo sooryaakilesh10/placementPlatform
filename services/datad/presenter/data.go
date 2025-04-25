@@ -25,11 +25,18 @@ type GetCompanyResponse struct {
 	Remarks        string `json:"remarks"`
 	ContactDetails string `json:"contactDetails"`
 	HRDetails      string `json:"hrDetails"`
+	IsApproved     *bool   `json:"isApproved"`
 }
 
 type GetCompanyRequest struct {
 	JWT string `json:"jwt"`
 	ID  string `json:"id"`
+}
+
+type SetAwaitingApprovalRequest struct {
+	JWT string `json:"jwt"`
+	ID  string `json:"id"`
+	IsApproved bool `json:"isApproved"`
 }
 
 type CreateCompanyResponse struct {

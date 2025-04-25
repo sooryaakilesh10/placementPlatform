@@ -268,13 +268,54 @@ func getAwaitingApproval(service data.Usecase) http.HandlerFunc {
 	}
 }
 
+func setAwaitingApproval(service data.Usecase) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var req presenter.SetAwaitingApprovalRequest
+		// Extract ID from path /v1/data/approve/id/{id}
+		path := strings.TrimPrefix(r.URL.Path, "/v1/data/approve/id/")
+		if path == "" {
+			http.Error(w, "company ID is required in the path", http.StatusBadRequest)
+			return
+		}
+
+		// Remove any trailing slashes and get the ID
+		id := strings.TrimSuffix(path, "/")
+		if id == "" {
+			http.Error(w, "id is required", http.StatusBadRequest)
+			return
+		}
+
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			log.Printf("Unable to decode request body, err=%v", err)
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		_, err := service.SetAwaitingApproval(req.JWT, id, req.IsApproved)
+		if err != nil {
+			if errors.Is(err, dataRepository.ErrNotFound) {
+				http.Error(w, "Company not found", http.StatusNotFound)
+			} else {
+				log.Printf("Unable to create company, err=%v", err)
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+			}
+			return
+		}
+
+		// Service call is successful, return 200 OK with empty body
+		w.WriteHeader(http.StatusOK)
+		// Optional: Write an empty JSON object {} or just leave the body empty
+		// w.Write([]byte("{}"))
+	}
+}
+
 // Register Data Routes
 func RegisterDataHandlers(service data.Usecase) {
 	http.HandleFunc("/v1/data/health", getDataHealth)   // GET
 	http.HandleFunc("/v1/data", createCompany(service)) // POST
 	http.HandleFunc("/v1/data/id/", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
-		case http.MethodPost:
+		case http.MethodGet:
 			getCompany(service)(w, r) // GET
 		case http.MethodPut:
 			updateCompanyByID(service)(w, r) // PUT
@@ -282,6 +323,7 @@ func RegisterDataHandlers(service data.Usecase) {
 			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 		}
 	})
-	http.HandleFunc("/v1/data/name/", getCompanyByName(service)) // POST
-	http.HandleFunc("/v1/data/approve", getAwaitingApproval(service)) // GET
+	http.HandleFunc("/v1/data/name/", getCompanyByName(service))          // POST
+	http.HandleFunc("/v1/data/approve", getAwaitingApproval(service))     // GET
+	http.HandleFunc("/v1/data/approve/id/", setAwaitingApproval(service)) // GET
 }

@@ -10,6 +10,7 @@ type Repository interface {
 type Writer interface {
 	CreateCompany(companyData *entity.CompanyData) error
 	UpdateCompany(companyData *entity.CompanyData) error
+	SetAwaitingApproval(companyID string, isApproved bool) (*entity.CompanyData, error)
 }
 
 type Reader interface {
@@ -42,4 +43,5 @@ type Usecase interface {
 		HRDetails string,
 		isContacted bool) (*entity.CompanyData, error)
 	GetAwaitingApproval() ([]*entity.CompanyData, error)
+	SetAwaitingApproval(jwtString, companyID string, isApproved bool) (*entity.CompanyData, error)
 }

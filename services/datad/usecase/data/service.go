@@ -193,3 +193,17 @@ func (s *Service) UpdateCompany(jwtString string,
 func (s *Service) GetAwaitingApproval() ([]*entity.CompanyData, error) {
 	return s.repo.GetAwaitingApproval()
 }
+
+func (s *Service) SetAwaitingApproval(jwtString, companyID string, isApproved bool) (*entity.CompanyData, error) {
+	// TODO: Add JWT validation/role check if necessary
+	// if err := s.validateJWTAndRole(jwtString); err != nil { // Add appropriate role check later
+	// 	return nil, err
+	// }
+
+	companyData, err := s.repo.SetAwaitingApproval(companyID, isApproved)
+	if err != nil {
+		log.Printf("unable to set awaiting approval status for company %s, err=%v", companyID, err)
+		return nil, err
+	}
+	return companyData, nil
+}
