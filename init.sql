@@ -45,5 +45,6 @@ CREATE TABLE company_data_approval (
     remarks TEXT,
     contact_details TEXT,
     hr_details TEXT,
+    is_approved BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

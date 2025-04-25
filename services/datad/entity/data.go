@@ -33,12 +33,14 @@ func NewCompany(companyName,
 	return &CompanyData{
 		CompanyID:      uuid.NewString(),
 		CompanyName:    companyName,
+		CompanyAddress: CompanyAddress,
 		Drive:          Drive,
 		TypeOfDrive:    TypeOfDrive,
 		FollowUp:       FollowUp,
 		IsContacted:    false,
 		Remarks:        Remarks,
 		ContactDetails: ContactDetails,
+		HRDetails:      HRDetails,
 	}, nil
 }
 

@@ -96,9 +96,9 @@ func (s *Service) CreateCompany(jwtString string,
 	ContactDetails,
 	HRDetails string,
 	IsContacted bool) (string, error) {
-	if err := s.validateJWTAndRole(jwtString); err != nil {
-		return "", err
-	}
+	// if err := s.validateJWTAndRole(jwtString); err != nil {
+	// 	return "", err
+	// }
 
 	companyData, err := entity.NewCompany(CompanyName,
 		CompanyAddress,
@@ -124,9 +124,9 @@ func (s *Service) CreateCompany(jwtString string,
 }
 
 func (s *Service) GetCompany(jwtString string, id string) (*entity.CompanyData, error) {
-	if err := s.validateJWTAndRole(jwtString); err != nil {
-		return nil, err
-	}
+	// if err := s.validateJWTAndRole(jwtString); err != nil {
+	// 	return nil, err
+	// }
 
 	companyData, err := s.repo.GetCompany(id)
 	if err != nil {
@@ -138,9 +138,9 @@ func (s *Service) GetCompany(jwtString string, id string) (*entity.CompanyData, 
 }
 
 func (s *Service) GetCompanyByName(jwtString string, name string) (*entity.CompanyData, error) {
-	if err := s.validateJWTAndRole(jwtString); err != nil {
-		return nil, err
-	}
+	// if err := s.validateJWTAndRole(jwtString); err != nil {
+	// 	return nil, err
+	// }
 
 	companyData, err := s.repo.GetCompany(name)
 	if err != nil {
@@ -149,4 +149,47 @@ func (s *Service) GetCompanyByName(jwtString string, name string) (*entity.Compa
 	}
 
 	return companyData, nil
+}
+
+func (s *Service) UpdateCompany(jwtString string,
+	CompanyID,
+	CompanyName,
+	CompanyAddress,
+	Drive,
+	TypeOfDrive,
+	FollowUp,
+	Remarks,
+	ContactDetails,
+	HRDetails string,
+	IsContacted bool) (*entity.CompanyData, error) {
+	// if err := s.validateJWTAndRole(jwtString); err != nil {
+	// 	return "", err
+	// }
+
+	companyData, err := entity.NewCompany(CompanyName,
+		CompanyAddress,
+		Drive,
+		TypeOfDrive,
+		FollowUp,
+		Remarks,
+		ContactDetails,
+		HRDetails,
+		IsContacted)
+	if err != nil {
+		log.Printf("unable to create company, err=%v", err)
+		return nil, err
+	}
+
+	err = s.repo.UpdateCompany(companyData)
+	if err != nil {
+		log.Printf("unable to create company in repo, err=%v", err)
+		return nil, err
+	}
+
+	return companyData, nil
+}
+
+// TODO check jwt token before calling this function
+func (s *Service) GetAwaitingApproval() ([]*entity.CompanyData, error) {
+	return s.repo.GetAwaitingApproval()
 }

@@ -20,6 +20,11 @@ func getDataHealth(w http.ResponseWriter, r *http.Request) {
 
 func createCompany(service data.Usecase) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
 		var req presenter.CreateCompanyRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			log.Printf("Unable to decode request body, err=%v", err)
@@ -170,10 +175,113 @@ func getCompanyByName(service data.Usecase) http.HandlerFunc {
 	}
 }
 
+func updateCompanyByID(service data.Usecase) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Extract ID from path /v1/data/id/{id}
+		path := strings.TrimPrefix(r.URL.Path, "/v1/data/name/")
+		if path == "" {
+			http.Error(w, "company ID is required in the path", http.StatusBadRequest)
+			return
+		}
+
+		// Remove any trailing slashes and get the ID
+		id := strings.TrimSuffix(path, "/")
+		if id == "" {
+			http.Error(w, "id is required", http.StatusBadRequest)
+			return
+		}
+
+		var req presenter.CreateCompanyRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			log.Printf("Unable to decode request body, err=%v", err)
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		company, err := service.UpdateCompany(
+			req.JWT,
+			req.CompanyID,
+			req.CompanyName,
+			req.CompanyAddress,
+			req.Drive,
+			req.TypeOfDrive,
+			req.FollowUp,
+			req.Remarks,
+			req.ContactDetails,
+			req.HRDetails,
+			req.IsContacted)
+		if err != nil {
+			log.Printf("Unable to create company, err=%v", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		if err := json.NewEncoder(w).Encode(presenter.GetCompanyResponse{
+			CompanyID:      company.CompanyID,
+			CompanyName:    company.CompanyName,
+			CompanyAddress: company.CompanyAddress,
+			Drive:          company.Drive,
+			TypeOfDrive:    company.TypeOfDrive,
+			FollowUp:       company.FollowUp,
+			IsContacted:    company.IsContacted,
+			Remarks:        company.Remarks,
+			ContactDetails: company.ContactDetails,
+			HRDetails:      company.HRDetails,
+		}); err != nil {
+			log.Printf("Unable to encode response, err=%v", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+}
+
+func getAwaitingApproval(service data.Usecase) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Extract ID from path /v1/data/id/{id}
+		path := strings.TrimPrefix(r.URL.Path, "/v1/data/name/")
+		if path == "" {
+			http.Error(w, "company ID is required in the path", http.StatusBadRequest)
+			return
+		}
+
+		// Remove any trailing slashes and get the ID
+		id := strings.TrimSuffix(path, "/")
+		if id == "" {
+			http.Error(w, "id is required", http.StatusBadRequest)
+			return
+		}
+
+		companies, err := service.GetAwaitingApproval()
+		if err != nil {
+			log.Printf("Unable to create company, err=%v", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		if err := json.NewEncoder(w).Encode(companies); err != nil {
+			log.Printf("Unable to encode response, err=%v", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+}
+
 // Register Data Routes
 func RegisterDataHandlers(service data.Usecase) {
-	http.HandleFunc("/v1/data/health", getDataHealth)    // GET
-	http.HandleFunc("/v1/data", createCompany(service))  // POST
-	http.HandleFunc("/v1/data/id/", getCompany(service)) // POST
+	http.HandleFunc("/v1/data/health", getDataHealth)   // GET
+	http.HandleFunc("/v1/data", createCompany(service)) // POST
+	http.HandleFunc("/v1/data/id/", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodPost:
+			getCompany(service)(w, r) // GET
+		case http.MethodPut:
+			updateCompanyByID(service)(w, r) // PUT
+		default:
+			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		}
+	})
 	http.HandleFunc("/v1/data/name/", getCompanyByName(service)) // POST
+	http.HandleFunc("/v1/data/approve", getAwaitingApproval(service)) // GET
 }
